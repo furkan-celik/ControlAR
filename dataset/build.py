@@ -3,6 +3,7 @@ from dataset.coco import build_coco
 from dataset.openimage import build_openimage
 from dataset.pexels import build_pexels
 from dataset.t2i import build_t2i, build_t2i_code, build_t2i_image
+from dataset.wui import build_wui_dsets
 # from dataset.t2i_control import build_t2i_control
 
 def build_dataset(args, **kwargs):
@@ -23,6 +24,8 @@ def build_dataset(args, **kwargs):
         return build_t2i(args, **kwargs)
     if args.dataset == 't2i_code':
         return build_t2i_code(args, **kwargs)
+    if args.dataset == "wui":
+        return build_wui_dsets(args, **kwargs)
     # if args.dataset == 't2i_control':
     #     return build_t2i_control(args, **kwargs)
     

@@ -265,6 +265,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--code-path", type=str, required=True)
+    parser.add_argument("--boxes-dir", type=str)
+    parser.add_argument("--rawdata-screenshots-dir", type=str)
+    parser.add_argument("--class-map-file", type=str)
     parser.add_argument("--cloud-save-path", type=str, required=True, help='please specify a cloud disk path, if not, local path')
     parser.add_argument("--no-local-save", action='store_true', help='no save checkpoints to local path for limited disk volume')
     parser.add_argument("--gpt-model", type=str, choices=list(GPT_models.keys()), default="GPT-B")
