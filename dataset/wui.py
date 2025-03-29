@@ -89,6 +89,9 @@ class WebUIDataset(torch.utils.data.Dataset):
 
         self.image_size = (image_size, image_size)
         self.layout_length = layout_length
+        self.flip = False
+        self.feature_dir = []
+        self.aug_feature_dir = None
 
     def __len__(self):
         return len(self.keys)
@@ -146,6 +149,7 @@ class WebUIDataset(torch.utils.data.Dataset):
             # box[1] *= self.image_size[1]
             # box[2] *= self.image_size[0]
             # box[3] *= self.image_size[1]
+            box.append(len(boxes) + 1)
 
             h, w = img.shape[1], img.shape[2]
 
@@ -161,7 +165,6 @@ class WebUIDataset(torch.utils.data.Dataset):
                 box[2] - box[0]
             ) <= self.min_area:  # get rid of really small elements
                 continue
-            box.append(len(boxes) + 1)
             boxes.append(box)
             masks.append(mask)
             label = key_dict["labels"][i]
@@ -189,21 +192,11 @@ class WebUIDataset(torch.utils.data.Dataset):
 
         labels = torch.tensor(labels, dtype=torch.long)
 
-        target["control"] = boxes if len(boxes.shape) == 2 else torch.zeros(0, 4)
+        target["control"] = boxes if len(boxes.shape) == 2 else torch.zeros(0, 5)
         target["obj_mask"] = masks if len(masks.shape) == 3 else torch.zeros(1, img.shape[1], img.shape[2])
         target["label"] = labels
         target["prompt"] = ",".join(labelNames)
         target["image_id"] = torch.tensor([idx])
-        target["area"] = (
-            (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-            if len(boxes.shape) == 2
-            else torch.zeros(0)
-        )
-        target["iscrowd"] = (
-            torch.zeros((boxes.shape[0],), dtype=torch.long)
-            if len(boxes.shape) == 2
-            else torch.zeros(0, dtype=torch.long)
-        )
         target["valid"] = torch.ones(len(target["control"]))
         target["num_obj"] = len(inds)
 
@@ -224,8 +217,8 @@ class WebUIDataset(torch.utils.data.Dataset):
             value=0,
         )
         target["label"] = torch.nn.functional.pad(
-            [",".join(c) for c in target["label"]],
-            (0, 0, 0, self.layout_length - len(target["label"])),
+            target["label"],
+            (0, self.layout_length - len(target["label"])),
             mode="constant",
             value=0,
         )
@@ -329,7 +322,7 @@ class WebUIDataModule(pl.LightningDataModule):
 def build_wui_dsets(cfg, mode="train"):
     assert mode in ["train", "val", "test"]
     params = cfg
-    dataset = WebUIDataset(**params)
+    dataset = WebUIDataset(cfg.split_file, cfg.boxes_dir, cfg.rawdata_screenshots_dir, cfg.class_map_file)
 
     num_objs = dataset.total_objects()
     num_imgs = len(dataset)
