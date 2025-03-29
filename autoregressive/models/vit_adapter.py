@@ -8,7 +8,7 @@ import torch.nn as nn
 class ViT_Adapter(nn.Module):
     def __init__(self, input_dim=3, output_dim=768, attention=False, pool=False, nheads=8, dropout=0.1):
         super(ViT_Adapter, self).__init__()
-        # self.model = AutoModel.from_pretrained('autoregressive/models/vit-small')
+        self.model = AutoModel.from_pretrained('WinKawaks/vit-small-patch16-224')
         
     def forward(self, x):
         x = self.model(x,interpolate_pos_encoding=True)
