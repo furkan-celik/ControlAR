@@ -15,6 +15,8 @@ import random
 
 import zipfile
 
+from torchvision.utils import draw_bounding_boxes
+
 # import sys
 
 # sys.path.append('../webuidata')
@@ -192,21 +194,21 @@ class WebUIDataset(torch.utils.data.Dataset):
 
         labels = torch.tensor(labels, dtype=torch.long)
 
-        target["control"] = boxes if len(boxes.shape) == 2 else torch.zeros(0, 5)
+        target["condition_imgs"] = boxes if len(boxes.shape) == 2 else torch.zeros(0, 5)
         target["obj_mask"] = masks if len(masks.shape) == 3 else torch.zeros(1, img.shape[1], img.shape[2])
-        target["label"] = labels
+        target["labels"] = labels
         target["prompt"] = ",".join(labelNames)
         target["image_id"] = torch.tensor([idx])
-        target["valid"] = torch.ones(len(target["control"]))
+        target["valid"] = torch.ones(len(target["condition_imgs"]))
         target["num_obj"] = len(inds)
 
         for k in target:
             if not isinstance(target[k], int):
                 target[k] = target[k][: self.max_boxes]
 
-        target["control"] = torch.nn.functional.pad(
-            target["control"],
-            (0, 0, 0, self.layout_length - len(target["control"])),
+        target["condition_imgs"] = torch.nn.functional.pad(
+            target["condition_imgs"],
+            (0, 0, 0, self.layout_length - len(target["condition_imgs"])),
             mode="constant",
             value=0,
         )
@@ -216,9 +218,10 @@ class WebUIDataset(torch.utils.data.Dataset):
             mode="constant",
             value=0,
         )
-        target["label"] = torch.nn.functional.pad(
-            target["label"],
-            (0, self.layout_length - len(target["label"])),
+        target["labels"] = torch.nn.functional.pad(
+            target["labels"],
+            # (0, self.layout_length - len(target["labels"])),
+            (0, 1 - len(target["labels"])),
             mode="constant",
             value=0,
         )
@@ -227,6 +230,11 @@ class WebUIDataset(torch.utils.data.Dataset):
             (0, self.layout_length - len(target["valid"])),
             mode="constant",
             value=0,
+        )
+
+        target["condition_img"] = draw_bounding_boxes(
+          torch.ones_like(img, dtype=torch.uint8) * 255,
+          target["condition_imgs"][:, :4]
         )
 
         target["image"] = img

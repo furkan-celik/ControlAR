@@ -410,12 +410,14 @@ class Transformer(nn.Module):
         if idx is not None and cond_idx is not None: # training or naive inference
             cond_embeddings,drop_ids = self.cls_embedding(cond_idx, train=self.training)
             cond_embeddings = cond_embeddings[:,:self.cls_token_num]
+            cond_embeddings = cond_embeddings.reshape(cond_embeddings.shape[0], -1, cond_embeddings.shape[-1])
             token_embeddings = self.tok_embeddings(idx)
             if condition is not None:
                 condition_embeddings = self.adapter(condition)
                 condition_embeddings = self.adapter_mlp(condition_embeddings)
 
                 self.condition_token = self.condition_mlp(condition_embeddings,train=self.training, drop_ids=drop_ids)
+            
             token_embeddings = torch.cat((cond_embeddings, token_embeddings), dim=1)
             h = self.tok_dropout(token_embeddings)
             self.freqs_cis = self.freqs_cis.to(h.device)

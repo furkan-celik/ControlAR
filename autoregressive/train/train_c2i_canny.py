@@ -145,6 +145,16 @@ def main(args):
     aug_info = 2 * aug_info if dataset.aug_feature_dir is not None else aug_info
     logger.info(f"Dataset contains {len(dataset):,} images ({args.code_path}) "
                 f"{flip_info} flip augmentation and {aug_info} crop augmentation")
+    
+    if args.vq_model:
+        vq_model = VQ_models[args.vq_model](
+            codebook_size=args.codebook_size,
+            codebook_embed_dim=args.codebook_embed_dim)
+        vq_model.to(device)
+        vq_model.eval()
+        checkpoint = torch.load(args.vq_ckpt, map_location="cpu")
+        vq_model.load_state_dict(checkpoint["model"])
+        del checkpoint
 
     # Prepare models for training:
     if args.gpt_ckpt:
@@ -188,17 +198,23 @@ def main(args):
         sampler.set_epoch(epoch)
         logger.info(f"Beginning epoch {epoch}...")
         for batch in loader:
-            x = batch['img_code']
+            x = batch['image']
             y = batch['labels']
-            condition_img = batch['condition_imgs']
+            condition_img = batch['condition_img']
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
+
+            with torch.no_grad():
+                _, _, [_, _, indices] = vq_model.encode(x)
+            x = indices.reshape(x.shape[0], -1)
+
             condition_img = condition_img.to(device, non_blocking=True)
+            print(condition_img.shape)
             z_indices = x.reshape(x.shape[0], -1)
-            c_indices = y.reshape(-1)
-            assert z_indices.shape[0] == c_indices.shape[0]
+            c_indices = y.reshape(y.shape[0], -1)
+            assert z_indices.shape[0] == c_indices.shape[0], f"{z_indices.shape}, {c_indices.shape}, {y.shape}"
             with torch.cuda.amp.autocast(dtype=ptdtype): 
-                _, loss = model(cond_idx=c_indices, idx=z_indices[:,:-1], targets=z_indices, condition=condition_img.repeat(1,3,1,1).to(ptdtype))
+                _, loss = model(cond_idx=c_indices, idx=z_indices[:,:-1], targets=z_indices, condition=condition_img.to(ptdtype))
             # backward pass, with gradient scaling if training in fp16         
             scaler.scale(loss).backward()
             if args.max_grad_norm != 0.0:

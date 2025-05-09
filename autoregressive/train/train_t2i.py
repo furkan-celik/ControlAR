@@ -89,7 +89,7 @@ def main(args):
         vq_model.eval()
         checkpoint = torch.load(args.vq_ckpt, map_location="cpu")
         vq_model.load_state_dict(checkpoint["model"])
-        del checkpoint        
+        del checkpoint
     transform = transforms.Compose([
         transforms.Lambda(lambda pil_image: center_crop_arr(pil_image, args.image_size)),
         transforms.ToTensor(),
