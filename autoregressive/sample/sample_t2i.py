@@ -92,7 +92,7 @@ def main(args):
     else:
         print(f"no need to compile model in demo") 
     
-    assert os.path.exists(args.t5_path)
+    # assert os.path.exists(args.t5_path)
     t5_model = T5Embedder(
         device=device, 
         local_cache=True, 
@@ -178,6 +178,7 @@ def main(args):
         print(f"decoder takes about {decoder_time:.2f} seconds.")
 
         samples = torch.cat((condition_img[0:1], samples), dim=0)
+        os.makedirs("sample/example", exist_ok=True)
         save_image(samples, f"sample/example/sample_t2i_{args.condition_type}.png", nrow=4, normalize=True, value_range=(-1, 1))
         print(f"image is saved to sample/example/sample_t2i_{args.condition_type}.png")
         print(prompts)
