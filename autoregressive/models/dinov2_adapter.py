@@ -10,7 +10,7 @@ class Dinov2_Adapter(nn.Module):
         super(Dinov2_Adapter, self).__init__()
         print(f"Choose adapter size: {adapter_size}")
         print(f"condition type: {condition_type}")
-        self.model = AutoModel.from_pretrained(f'autoregressive/models/dinov2-{adapter_size}')
+        self.model = AutoModel.from_pretrained(f'facebook/dinov2-{adapter_size}')
         self.condition_type = condition_type
     
     def to_patch14(self, input):
